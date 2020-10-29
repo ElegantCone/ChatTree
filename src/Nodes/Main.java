@@ -9,6 +9,7 @@ public class Main {
         Receiver receiver;
         Sender sender;
         Reader reader;
+        Pinger pinger;
 
         InetAddress nodeAddr, neighbourAddr;
         int port, neighbourPort, lostPercent;
@@ -33,6 +34,8 @@ public class Main {
             sender.start();
             reader = new Reader(node);
             reader.start();
+            pinger = new Pinger(node);
+            pinger.start();
         } catch (Exception e) {
             System.out.println("Wrong arguments");
         }

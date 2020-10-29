@@ -151,4 +151,13 @@ public class Node {
     public int getLossPersent(){
         return nodeLossPercent;
     }
+
+    public void disconnect(Neighbour neighbour){
+        neighList.remove(neighbour);
+        for (UUID uuid : sendList.keySet()){
+            for (Neighbour neigh : sendList.get(uuid)){
+                if (neigh.equals(neighbour)) sendList.get(uuid).remove(neigh);
+            }
+        }
+    }
 }

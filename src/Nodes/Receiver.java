@@ -26,14 +26,14 @@ public class Receiver extends Thread {
                 byte[] code = new byte[1];
                 ByteArrayInputStream bin = new ByteArrayInputStream(message);
                 bin.read(code);
-
+                //0 - greetings, 1 - answer
                 if (code[0] == 0 || code[0] == 1){
                     receiveGreetingMessage(bin, packet, code[0]);
                     bin.close();
                 }
                 //2 - message, 3 - answer
-                if (code[0] == 2 || code[0] == 3){
-                    if (code[0] == 2 && node.getLossPersent() < random.nextInt(100)) {
+                else if (code[0] == 2 || code[0] == 3){
+                    if (code[0] == 2 && node.getLossPersent() < random.nextInt(101)) {
                         Message recvMsg = receiveMessage(bin, packet, code[0]);
                         Neighbour neighbour = node.getNeighbour(packet.getPort());
                         if (neighbour == null) throw new Exception();
@@ -55,6 +55,22 @@ public class Receiver extends Thread {
                         node.delNeighFromSendList(recvMsg.getUUID(), neighbour);
                     }
                     bin.close();
+                }
+                //4 - ping, 5 - answer
+                else if (code[0] == 4 || code[0] == 5) {
+                    if (code[0] == 4){
+                        byte[] answer = {(byte)5};
+                        DatagramPacket answPack =
+                                new DatagramPacket(answer, answer.length, packet.getAddress(), packet.getPort());
+                        node.getSocket().send(answPack);
+                    }
+                    else {
+                        for (Neighbour neighbour : node.getNeighList()){
+                            if (neighbour.getAddress().equals(packet.getAddress()) && neighbour.getPort().equals(packet.getPort())){
+                                neighbour.setLastRecvPingTime();
+                            }
+                        }
+                    }
                 }
 
             }

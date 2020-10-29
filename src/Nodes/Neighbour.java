@@ -10,12 +10,16 @@ public class Neighbour {
     private String nodeName;
     private InetAddress nodeAddr;
     private Map<UUID, Long> cooldown;
+    private long lastRecvPingTime;
+    private long lastSentPingTime;
 
     Neighbour(String name, InetAddress addr, int port){
         nodeName = name;
         nodeAddr = addr;
         nodePort = port;
         cooldown = new ConcurrentHashMap<UUID, Long>();
+        lastRecvPingTime = System.currentTimeMillis();
+        lastSentPingTime = System.currentTimeMillis();
     }
 
     public Integer getPort(){
@@ -39,5 +43,21 @@ public class Neighbour {
 
     public void setCDforMsg(UUID uuid){
         cooldown.put(uuid, System.currentTimeMillis());
+    }
+
+    public long getPingRecvTime(){
+        return lastRecvPingTime;
+    }
+
+    public void setLastRecvPingTime(){
+        lastRecvPingTime = System.currentTimeMillis();
+    }
+
+    public void setLastSentPingTime(){
+        lastSentPingTime = System.currentTimeMillis();
+    }
+
+    public long getLastSentPingTime(){
+        return lastSentPingTime;
     }
 }

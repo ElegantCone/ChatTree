@@ -60,4 +60,5 @@ public class Neighbour {
     public long getLastSentPingTime(){
         return lastSentPingTime;
     }
+
 }

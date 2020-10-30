@@ -44,6 +44,7 @@ public class Node {
         if (haveSavepoint) return;
         savepoint = neighbour;
         haveSavepoint = true;
+        System.out.println("Created savepoint: " + neighbour.getName());
     }
 
     public void addNeighbour(Neighbour neighbour){
@@ -68,6 +69,27 @@ public class Node {
         bout.close();
         packet = new DatagramPacket(message, message.length, addr, neighPort);
         nodeSocket.send(packet);
+    }
+
+    public void reconstruct(InetAddress addr, int neighPort, boolean connected) throws IOException {
+        DatagramPacket packet;
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        byte[] code = {connected? (byte)6 : (byte)7};
+        bout.write(code);
+        byte[] name = nodeName.getBytes();
+        int nameLen = name.length;
+        bout.write(ByteBuffer.allocate(4).putInt(nameLen).array());
+        bout.write(name);
+        sendSavepoint(bout);
+        byte[] message = bout.toByteArray();
+        bout.close();
+        packet = new DatagramPacket(message, message.length, addr, neighPort);
+        nodeSocket.send(packet);
+        for (Neighbour neighbour : neighList){
+            if (neighbour.getPort() == neighPort && neighbour.getAddress() == addr) continue;
+            packet = new DatagramPacket(message, message.length, neighbour.getAddress(), neighbour.getPort());
+            nodeSocket.send(packet);
+        }
     }
 
     public DatagramSocket getSocket(){
@@ -159,5 +181,23 @@ public class Node {
                 if (neigh.equals(neighbour)) sendList.get(uuid).remove(neigh);
             }
         }
+    }
+
+    public Neighbour getSavepoint(){
+        return savepoint;
+    }
+
+    public void delSavepoint(){
+        savepoint = null;
+        haveSavepoint = false;
+    }
+
+    public Neighbour getNeighbourByAddress(InetAddress addr, int port){
+        for (Neighbour neighbour : neighList){
+            if (neighbour.getAddress().equals(addr) && neighbour.getPort() == port){
+                return neighbour;
+            }
+        }
+        return null;
     }
 }

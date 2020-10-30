@@ -45,12 +45,12 @@ public class Receiver extends Thread {
                         node.addAnswerToQueue(msg, neighbour);
 
                     }
-                    else {
+                    else if (code[0] == 2){
                         System.out.println("Message was lost! Trying to receive again...");
                     }
                     if (code[0] == 3) {
                         Message recvMsg = receiveMessage(bin, packet, code[0]);
-                        Neighbour neighbour = node.getNeighbour(packet.getPort());
+                        Neighbour neighbour = node.getNeighbourByAddress(packet.getAddress(), packet.getPort());
                         if (neighbour == null) throw new Exception();
                         node.delNeighFromSendList(recvMsg.getUUID(), neighbour);
                     }
@@ -72,6 +72,10 @@ public class Receiver extends Thread {
                         }
                     }
                 }
+                else if (code[0] == 6 || code[0] == 7){
+                    receiveReconstructMessage(bin, packet, code[0]);
+                    bin.close();
+                }
 
             }
         }
@@ -90,7 +94,6 @@ public class Receiver extends Thread {
         String name = new String(name_b); //got node's name
         System.out.println("Node " + name + " connected! From port: " + packet.getPort());
         Neighbour neighbour = new Neighbour(name, packet.getAddress(), packet.getPort());
-        node.addNeighbour(neighbour);
         int spAddrLen = readLengthFromInput(bin);
         if (spAddrLen == 0) {
             if (code == 0){
@@ -98,6 +101,7 @@ public class Receiver extends Thread {
                 node.createSavepoint(spNeighbour);
                 node.connect(packet.getAddress(), packet.getPort(), true);
             }
+            if (node.getNeighbourByAddress(neighbour.getAddress(), neighbour.getPort()) == null) node.addNeighbour(neighbour);
             return;
         }
         //else
@@ -124,6 +128,44 @@ public class Receiver extends Thread {
         node.createSavepoint(spNeighbour);
         if (code == 0){
             node.connect(packet.getAddress(), packet.getPort(), true);
+        }
+
+        if (node.getNeighbourByAddress(neighbour.getAddress(), neighbour.getPort()) == null) node.addNeighbour(neighbour);
+    }
+
+    private void receiveReconstructMessage(ByteArrayInputStream bin, DatagramPacket packet, byte code) throws IOException {
+        int length = readLengthFromInput(bin);
+        byte[] name_b = new byte[length];
+        bin.read(name_b);
+        String name = new String(name_b); //got node's name
+        System.out.println("Node " + name + " connected (reconstructored)!");
+        Neighbour sender = new Neighbour(name, packet.getAddress(), packet.getPort());
+        if (node.getNeighbourByAddress(sender.getAddress(), sender.getPort()) == null) node.addNeighbour(sender);
+        int spAddrLen = readLengthFromInput(bin);
+        byte[] spAddr_b = new byte[spAddrLen];
+        bin.read(spAddr_b);
+        byte[] spAddr_bTemp = Arrays.copyOfRange(spAddr_b, 1, spAddrLen);
+        String spAddrName = new String(spAddr_bTemp);
+        InetAddress spAddr = InetAddress.getByName(spAddrName);
+        int spPortLen = readLengthFromInput(bin);
+        byte[] spPort_b = new byte[spPortLen];
+        bin.read(spPort_b);
+        int spPort = ByteBuffer.wrap(spPort_b).getInt();
+        int spNameLen = readLengthFromInput(bin);
+        byte[] spName_b = new byte[spNameLen];
+        bin.read(spName_b);
+        String spName = new String(spName_b);
+        Neighbour spNeighbour;
+        if (node.getSocket().getLocalAddress().equals(spAddr) && node.getPort() == spPort){
+            spNeighbour = new Neighbour(name, packet.getAddress(), packet.getPort());
+        }
+        else {
+            spNeighbour = new Neighbour(spName, spAddr, spPort);
+        }
+        /*if (!spNeighbour.getPort().equals(node.getPort()))*/ node.delSavepoint();
+        node.createSavepoint(spNeighbour);
+        if (code == 7){
+            node.reconstruct(packet.getAddress(), packet.getPort(), true);
         }
     }
 

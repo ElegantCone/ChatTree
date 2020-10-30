@@ -33,8 +33,31 @@ public class Pinger extends Thread{
                 if (System.currentTimeMillis() - neighbour.getPingRecvTime() > 5000){
                     System.out.println(neighbour.getName() + " disconnected");
                     node.disconnect(neighbour);
+                    if (neighbour.getAddress().equals(node.getSavepoint().getAddress()) &&
+                            neighbour.getPort().equals(node.getSavepoint().getPort())) {
+                        node.delSavepoint();
+                    }
+                    try {
+                        check(neighbour); //checking savepoints
+                    } catch (IOException e) {
+                        System.out.println("Can't refactor tree");
+                    }
                 }
             }
+        }
+    }
+
+    public void check(Neighbour deletedNeigh) throws IOException {
+        if (node.getSavepoint() == null){
+            if (node.getNeighList().size() == 0) return;
+            Neighbour neigh = node.getNeighList().iterator().next();
+            if (neigh == null) return;
+            node.createSavepoint(neigh);
+            node.reconstruct(neigh.getAddress(), neigh.getPort(), false);
+        }
+        else {
+            Neighbour savepoint = node.getSavepoint();
+            node.reconstruct(savepoint.getAddress(), savepoint.getPort(), false);
         }
     }
 
